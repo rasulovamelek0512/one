@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Карта</title>
+    <!-- Проблемы с доступом к данным, необходимым для отображения карты, например, к файлу на Яндекс.Диске. -->
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+</head>
+<body>
+    <div id="map" style="width: 700px; height: 700px;"></div> <!-- Контейнер для карты -->
+    <script>
+        ymaps.ready(init);
+        function init() {
+            myMap = new ymaps.Map("map", {
+                center: [55.76, 37.64], // Координаты центра карты
+                zoom: 10
+            });
+            updateMap(); // Вызов функции обновления карты
+        }
+
+        function geocodeAddress(address) {
+            return ymaps.geocode(address).then(res => {
+                return res.geoObjects.get(0).geometry.coordinates;
+            });
+        }
+
+        function updateMap() {
+            fetch('https://disk.yandex.ru/d/RhyjSJcm9GO0tw') // Проверьте URL
+                .then(response => response.json())
+                .then(data => {
+                    myMap.geoObjects.removeAll();
+                    data.forEach(item => {
+                        geocodeAddress(item.address)
+                            .then(coordinates => {
+                                var placemark = new ymaps.Placemark(coordinates, {
+                                    balloonContent: `
+                                        <table>
+                                            <tr><th>SUI Номер</th><td>${item.sui}</td></tr>
+                                            <tr><th>Вн. код</th><td>${item.code}</td></tr>
+                                            <tr><th>Адрес</th><td>${item.address}</td></tr>
+                                            <tr><th>Тип поверхности</th><td>${item.surface}</td></tr>
+                                            <tr><th>Тип механизма</th><td>${item.mechanism}</td></tr>
+                                            <tr><th>Фото</th><td><a href="${item.photo}">Ссылка</a></td></tr>
+                                        </table>
+                                    `
+                                });
+                                myMap.geoObjects.add(placemark);
+                            })
+                            .catch(error => console.error('Ошибка геокодирования:', error));
+                    });
+                })
+                .catch(error => console.error('Ошибка:', error));
+        }
+    </script>
+</body>
+</html>
